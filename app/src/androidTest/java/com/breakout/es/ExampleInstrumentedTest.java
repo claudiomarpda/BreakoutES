@@ -21,6 +21,6 @@ public class ExampleInstrumentedTest {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getTargetContext();
 
-        assertEquals("com.rn.mz.ourgame", appContext.getPackageName());
+        assertEquals("com.breakout.es", appContext.getPackageName());
     }
 }

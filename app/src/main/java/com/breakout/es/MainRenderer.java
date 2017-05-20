@@ -2,6 +2,7 @@ package com.breakout.es;
 
 import android.content.Context;
 import android.opengl.GLSurfaceView;
+import android.util.Log;
 
 import com.breakout.es.util.LoggerConfig;
 import com.breakout.es.util.ShaderHelper;
@@ -36,6 +37,7 @@ import static android.opengl.Matrix.orthoM;
  */
 public class MainRenderer implements GLSurfaceView.Renderer {
 
+    private final String TAG = "MainRenderer";
     private static final String A_POSITION = "a_Position";
     private static final String A_COLOR = "a_Color";
     private static final String U_MATRIX = "u_Matrix";
@@ -46,48 +48,35 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     private static final int STRIDE =
             (POSITION_COMPONENT_COUNT + COLOR_COMPONENT_COUNT) * BYTES_PER_FLOAT;
 
-    private final float defColor = 1.0f;
+    private final float defenderColor = 1.0f;
+    private final float defenderYCoord = -1f;
+    private float defenderXCoord = 0f;
+
     private final float[] projectionMatrix = new float[16];
     private int uMatrixLocation;
 
-    private final FloatBuffer vertexData;
+    private FloatBuffer vertexData;
     private final Context context;
 
     private int program;
     private int aPositionLocation;
     private int aColorLocation;
 
+    private float[] spaceVertices = {
+            // Order of coordinates: X, Y, R, G, B
+            // Triangle Fan
+
+            // game space
+            0f, 0f, 0.2f, 0.2f, 0.3f,
+            -1f, -1f, 0.2f, 0.2f, 0.3f,
+            1f, -1f, 0.2f, 0.2f, 0.3f,
+            1f, 1.5f, 0.2f, 0.2f, 0.4f,
+            -1f, 1.5f, 0.2f, 0.2f, 0.4f,
+            -1f, -1f, 0.2f, 0.2f, 0.3f,
+    };
 
     public MainRenderer(Context context) {
-
-        /*
-            Vertex data is stored in the following manner:
-            The first two numbers are part of the position: X, Y
-            The next three numbers are part of the color: R, G, B
-        */
-        float[] tableVerticesWithTriangles = {
-                // Order of coordinates: X, Y, R, G, B
-                // Triangle Fan
-
-                // game field
-                0f, 0f, 0.2f, 0.2f, 0.3f,
-                -1f, -1f, 0.2f, 0.2f, 0.3f,
-                1f, -1f, 0.2f, 0.2f, 0.3f,
-                1f, 1.5f, 0.2f, 0.2f, 0.4f,
-                -1f, 1.5f, 0.2f, 0.2f, 0.4f,
-                -1f, -1f, 0.2f, 0.2f, 0.3f,
-
-                // defender
-               -0.2f, -1f, defColor, defColor, defColor,
-               0.2f, -1f, defColor, defColor, defColor
-        };
-
-        vertexData = ByteBuffer
-                .allocateDirect(tableVerticesWithTriangles.length * BYTES_PER_FLOAT)
-                .order(ByteOrder.nativeOrder())
-                .asFloatBuffer();
-        vertexData.put(tableVerticesWithTriangles);
-
+        setVertexData(spaceVertices);
         this.context = context;
     }
 
@@ -131,7 +120,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
                 false, STRIDE, vertexData);
 
         glEnableVertexAttribArray(aColorLocation);
-
+        glLineWidth(5);
     }
 
     /**
@@ -152,11 +141,10 @@ public class MainRenderer implements GLSurfaceView.Renderer {
                 (float) width / (float) height :
                 (float) height / (float) width;
 
-        if(width > height) {
+        if (width > height) {
             // Landscape
             orthoM(projectionMatrix, 0, -aspectRatio, aspectRatio, -1f, 1f, -1f, 1f);
-        }
-        else {
+        } else {
             // Portrait or square
             orthoM(projectionMatrix, 0, -1f, 1f, -aspectRatio, aspectRatio, -1f, 1f);
         }
@@ -166,13 +154,74 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     public void onDrawFrame(GL10 glUnused) {
         // Clear the rendering surface.
         glClear(GL_COLOR_BUFFER_BIT);
-
         glUniformMatrix4fv(uMatrixLocation, 1, false, projectionMatrix, 0);
-
-        glDrawArrays(GL_TRIANGLE_FAN, 0, 6);
-
-        // Draw defender
-        glLineWidth(5);
-        glDrawArrays(GL_LINES, 6, 2);
+        drawSpace();
+        drawDefender();
     }
+
+    private void drawSpace() {
+        setVertexData(spaceVertices);
+        bindVertexData();
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 6);
+    }
+
+    private void drawDefender() {
+        float leftBound = defenderXCoord - 0.2f;
+        float rightBound = defenderXCoord + 0.2f;
+        float[] objectVertex = new float[]{
+                leftBound, defenderYCoord, defenderColor, defenderColor, defenderColor,
+                rightBound, defenderYCoord, defenderColor, defenderColor, defenderColor};
+
+        setVertexData(objectVertex);
+        bindVertexData();
+        // Draw defender
+        glDrawArrays(GL_LINES, 0, 2);
+    }
+
+    public void handleTouchPress(float normalizedX, float normalizedY) {
+        if (LoggerConfig.ON) {
+            Log.d(TAG, "Action touch at point(" + normalizedX + ", " + normalizedY + ")");
+        }
+        defenderXCoord = normalizedX;
+    }
+
+    public void handleTouchDrag(float normalizedX, float normalizedY) {
+        if (LoggerConfig.ON) {
+            Log.d(TAG, "Action drag at point(" + normalizedX + ", " + normalizedY + ")");
+        }
+        defenderXCoord = normalizedX;
+    }
+
+    /**
+     * Sets the object vertices as a buffer.
+     *
+     * @param objectVertices contains the data that will be allocated.
+     */
+    private void setVertexData(float[] objectVertices) {
+        vertexData = ByteBuffer
+                .allocateDirect(objectVertices.length * BYTES_PER_FLOAT)
+                .order(ByteOrder.nativeOrder())
+                .asFloatBuffer();
+        vertexData.put(objectVertices);
+    }
+
+    /**
+     * Tells OpenGL where to find the location of an attribute.
+     */
+    private void bindVertexData() {
+
+        // Associates data with our attribute a_Position.
+        vertexData.position(0);
+        glVertexAttribPointer(aPositionLocation, POSITION_COMPONENT_COUNT, GL_FLOAT,
+                false, STRIDE, vertexData);
+        glEnableVertexAttribArray(aPositionLocation);
+
+        // Bind our data, specified by the variable vertexData, to the vertex
+        // attribute at location A_COLOR_LOCATION.
+        vertexData.position(POSITION_COMPONENT_COUNT);
+        glVertexAttribPointer(aColorLocation, COLOR_COMPONENT_COUNT, GL_FLOAT, false, STRIDE, vertexData);
+
+        glEnableVertexAttribArray(aColorLocation);
+    }
+
 }

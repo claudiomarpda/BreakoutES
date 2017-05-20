@@ -3,6 +3,8 @@ package com.breakout.es;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.view.MotionEvent;
+import android.view.View;
 import android.view.WindowManager;
 
 /**
@@ -10,7 +12,7 @@ import android.view.WindowManager;
  */
 public class MainActivity extends AppCompatActivity {
 
-    private GLSurfaceView mGlSurfaceView;
+    private GLSurfaceView glSurfaceView;
     private boolean rendererSet;
 
     @Override
@@ -20,31 +22,64 @@ public class MainActivity extends AppCompatActivity {
         // Remove notification bar
         this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
-        mGlSurfaceView = new GLSurfaceView(this);
+        glSurfaceView = new GLSurfaceView(this);
 
         // Request an OpenGL 2.0 compatible context
-        mGlSurfaceView.setEGLContextClientVersion(2);
+        glSurfaceView.setEGLContextClientVersion(2);
+
+        final MainRenderer mainRenderer = new MainRenderer(this);
 
         // Assign our renderer
-        mGlSurfaceView.setRenderer(new MainRenderer(this));
+        glSurfaceView.setRenderer(mainRenderer);
         rendererSet = true;
-        setContentView(mGlSurfaceView);
 
+        // handle user input
+        glSurfaceView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(final View v, final MotionEvent event) {
+                if (event != null) {
+                    final float normalizedX = (event.getX() / (float) v.getWidth()) * 2 - 1;
+                    final float normalizedY = -((event.getY() / (float) v.getHeight()) * 2 - 1);
+
+                    if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                        glSurfaceView.queueEvent(new Runnable() {
+                            @Override
+                            public void run() {
+                                mainRenderer.handleTouchPress(normalizedX, normalizedY);
+                            }
+                        });
+                    } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
+                        glSurfaceView.queueEvent(new Runnable() {
+                            @Override
+                            public void run() {
+                                float normalizedX = (event.getX() / (float) v.getWidth()) * 2 - 1;
+                                float normalizedY = -((event.getY() / (float) v.getHeight()) * 2 - 1);
+                                mainRenderer.handleTouchDrag(normalizedX, normalizedY);
+                            }
+                        });
+                    }
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        });
+        setContentView(glSurfaceView);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if(rendererSet) {
-            mGlSurfaceView.onPause();
+        if (rendererSet) {
+            glSurfaceView.onPause();
         }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if(rendererSet) {
-            mGlSurfaceView.onResume();
+        if (rendererSet) {
+            glSurfaceView.onResume();
         }
     }
 }
