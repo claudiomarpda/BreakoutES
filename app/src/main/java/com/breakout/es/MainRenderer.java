@@ -114,7 +114,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         glLineWidth(5);
 
         defenderControl = new DefenderControl();
-        ballControl = new BallControl(defenderControl.getDefenderPosition());
+        ballControl = new BallControl(defenderControl.getDefenderPosition(), context);
     }
 
     /**

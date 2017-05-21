@@ -1,9 +1,12 @@
 package com.breakout.es.control;
 
+import android.content.Context;
+
 import com.breakout.es.model.Ball;
 import com.breakout.es.model.Defender;
 import com.breakout.es.model.Point;
 import com.breakout.es.model.Space;
+import com.breakout.es.util.SoundManager;
 
 import java.security.SecureRandom;
 
@@ -13,8 +16,9 @@ import java.security.SecureRandom;
 
 public class BallControl implements Runnable {
 
-    private static float BALL_SPEED = 0.005f;
-    private static float BALL_DOWN = -2f;
+    private static final float BALL_DOWN = -2f;
+    private static final float BALL_ACCELERATION = 1.25f;
+    private float BALL_SPEED = 0.005f;
 
     private Ball ball;
     private int ballDirectionY;
@@ -22,14 +26,18 @@ public class BallControl implements Runnable {
     private Point defenderPosition;
     private boolean gameOver;
     private boolean beginFromRightSide;
+    private int numberOfDefenses;
+    private SoundManager soundManager;
 
-    public BallControl(Point defenderPosition) {
+    public BallControl(Point defenderPosition, Context context) {
         ball = new Ball();
         ballDirectionY = 1;
         ballDirectionX = 1;
         this.defenderPosition = defenderPosition;
         gameOver = false;
         beginFromRightSide = new SecureRandom().nextBoolean();
+        numberOfDefenses = 0;
+        soundManager = new SoundManager(context);
     }
 
     @Override
@@ -41,16 +49,27 @@ public class BallControl implements Runnable {
                 e.printStackTrace();
             }
 
+            // Side bounds collision
             if (ball.getPosition().x < Space.LEFT_BOUND || ball.getPosition().x > Space.RIGHT_BOUND) {
-                updateBallDirectionX();
+                changeBallDirectionX();
+                if(ball.getPosition().y > Space.LOW_BOUND) {
+                    soundManager.playWallCollision();
+                }
             }
+
+            // Up bound collision
             if (ball.getPosition().y > Space.UP_BOUND) {
-                updateBallDirectionY();
+                changeBallDirectionY();
+                soundManager.playWallTopCollision();
             }
+            // Low bound position
+            // If there is no collision with the defender, game over
             if (ball.getPosition().y < Space.LOW_BOUND) {
                 if (!gameOver) {
                     if (wasDefended()) {
-                        updateBallDirectionY();
+                        soundManager.playDefenderCollision();
+                        changeBallDirectionY();
+                        defenseUpdate();
                     } else {
                         gameOver = true;
                     }
@@ -64,8 +83,8 @@ public class BallControl implements Runnable {
 
             // Can have two types of initial direction
             if (!beginFromRightSide) {
-                updateBallDirectionY();
-                updateBallDirectionX();
+                changeBallDirectionY();
+                changeBallDirectionX();
                 beginFromRightSide = true;
             }
             ball.setPosition(new Point(
@@ -75,11 +94,22 @@ public class BallControl implements Runnable {
         }
     }
 
-    private void updateBallDirectionX() {
+    private void defenseUpdate() {
+        numberOfDefenses++;
+        if(numberOfDefenses % 2 == 0) {
+            BALL_SPEED *= BALL_ACCELERATION;
+            soundManager.playPowerUp();
+        }
+        else {
+            soundManager.playDefenderCollision();
+        }
+    }
+
+    private void changeBallDirectionX() {
         ballDirectionX *= -1;
     }
 
-    private void updateBallDirectionY() {
+    private void changeBallDirectionY() {
         ballDirectionY *= -1;
     }
 
@@ -92,10 +122,10 @@ public class BallControl implements Runnable {
         defenderPosition = point;
     }
 
+    /**
+     * Checks if the defender position collides with the ball.
+     */
     private boolean wasDefended() {
-        if (ball == null || defenderPosition == null) {
-            return false;
-        }
         if (ball.getPosition().x <= (defenderPosition.x + Defender.HALF_LENGTH) &&
                 ball.getPosition().x >= (defenderPosition.x - Defender.HALF_LENGTH)) {
             return true;
