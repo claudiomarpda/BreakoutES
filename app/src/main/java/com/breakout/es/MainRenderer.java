@@ -4,6 +4,9 @@ import android.content.Context;
 import android.opengl.GLSurfaceView;
 import android.util.Log;
 
+import com.breakout.es.control.BallControl;
+import com.breakout.es.control.DefenderControl;
+import com.breakout.es.model.Space;
 import com.breakout.es.util.LoggerConfig;
 import com.breakout.es.util.ShaderHelper;
 import com.breakout.es.util.TextResourceReader;
@@ -18,6 +21,7 @@ import javax.microedition.khronos.opengles.GL10;
 import static android.opengl.GLES20.GL_COLOR_BUFFER_BIT;
 import static android.opengl.GLES20.GL_FLOAT;
 import static android.opengl.GLES20.GL_LINES;
+import static android.opengl.GLES20.GL_POINTS;
 import static android.opengl.GLES20.GL_TRIANGLE_FAN;
 import static android.opengl.GLES20.glClear;
 import static android.opengl.GLES20.glClearColor;
@@ -48,10 +52,6 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     private static final int STRIDE =
             (POSITION_COMPONENT_COUNT + COLOR_COMPONENT_COUNT) * BYTES_PER_FLOAT;
 
-    private final float defenderColor = 1.0f;
-    private final float defenderYCoord = -1f;
-    private float defenderXCoord = 0f;
-
     private final float[] projectionMatrix = new float[16];
     private int uMatrixLocation;
 
@@ -62,21 +62,12 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     private int aPositionLocation;
     private int aColorLocation;
 
-    private float[] spaceVertices = {
-            // Order of coordinates: X, Y, R, G, B
-            // Triangle Fan
-
-            // game space
-            0f, 0f, 0.2f, 0.2f, 0.3f,
-            -1f, -1f, 0.2f, 0.2f, 0.3f,
-            1f, -1f, 0.2f, 0.2f, 0.3f,
-            1f, 1.5f, 0.2f, 0.2f, 0.4f,
-            -1f, 1.5f, 0.2f, 0.2f, 0.4f,
-            -1f, -1f, 0.2f, 0.2f, 0.3f,
-    };
+    private BallControl ballControl;
+    private DefenderControl defenderControl;
+    private boolean hasStarted = false;
 
     public MainRenderer(Context context) {
-        setVertexData(spaceVertices);
+        setVertexData(Space.VERTICES);
         this.context = context;
     }
 
@@ -121,6 +112,9 @@ public class MainRenderer implements GLSurfaceView.Renderer {
 
         glEnableVertexAttribArray(aColorLocation);
         glLineWidth(5);
+
+        defenderControl = new DefenderControl();
+        ballControl = new BallControl(defenderControl.getDefenderPosition());
     }
 
     /**
@@ -154,50 +148,56 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     public void onDrawFrame(GL10 glUnused) {
         // Clear the rendering surface.
         glClear(GL_COLOR_BUFFER_BIT);
+
         glUniformMatrix4fv(uMatrixLocation, 1, false, projectionMatrix, 0);
         drawSpace();
         drawDefender();
+        drawBall();
     }
 
     private void drawSpace() {
-        setVertexData(spaceVertices);
+        setVertexData(Space.VERTICES);
         bindVertexData();
         glDrawArrays(GL_TRIANGLE_FAN, 0, 6);
     }
 
     private void drawDefender() {
-        float leftBound = defenderXCoord - 0.2f;
-        float rightBound = defenderXCoord + 0.2f;
-        float[] objectVertex = new float[]{
-                leftBound, defenderYCoord, defenderColor, defenderColor, defenderColor,
-                rightBound, defenderYCoord, defenderColor, defenderColor, defenderColor};
-
-        setVertexData(objectVertex);
+        setVertexData(defenderControl.getCurrentDefenderVertices());
         bindVertexData();
-        // Draw defender
         glDrawArrays(GL_LINES, 0, 2);
+    }
+
+    private void drawBall() {
+        setVertexData(ballControl.getCurrentBallVertices());
+        bindVertexData();
+        glDrawArrays(GL_POINTS, 0, 1);
     }
 
     public void handleTouchPress(float normalizedX, float normalizedY) {
         if (LoggerConfig.ON) {
             Log.d(TAG, "Action touch at point(" + normalizedX + ", " + normalizedY + ")");
         }
-        defenderXCoord = normalizedX;
+        // shoots the ball
+        if (!hasStarted) {
+            new Thread(ballControl).start();
+            hasStarted = true;
+        }
     }
 
     public void handleTouchDrag(float normalizedX, float normalizedY) {
         if (LoggerConfig.ON) {
             Log.d(TAG, "Action drag at point(" + normalizedX + ", " + normalizedY + ")");
         }
-        defenderXCoord = normalizedX;
+        defenderControl.updateDefenderPosition(normalizedX);
+        ballControl.setDefenderPosition(defenderControl.getDefenderPosition());
     }
 
     /**
-     * Sets the object vertices as a buffer.
+     * Sets the object VERTICES as a buffer.
      *
      * @param objectVertices contains the data that will be allocated.
      */
-    private void setVertexData(float[] objectVertices) {
+    public void setVertexData(float[] objectVertices) {
         vertexData = ByteBuffer
                 .allocateDirect(objectVertices.length * BYTES_PER_FLOAT)
                 .order(ByteOrder.nativeOrder())
@@ -208,7 +208,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     /**
      * Tells OpenGL where to find the location of an attribute.
      */
-    private void bindVertexData() {
+    public void bindVertexData() {
 
         // Associates data with our attribute a_Position.
         vertexData.position(0);
