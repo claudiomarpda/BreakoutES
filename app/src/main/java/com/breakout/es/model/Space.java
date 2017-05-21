@@ -26,4 +26,5 @@ public class Space {
     public static final float RIGHT_BOUND = 1f;
     public static final float UP_BOUND = 1.5f;
     public static final float LOW_BOUND = -1f;
+
 }

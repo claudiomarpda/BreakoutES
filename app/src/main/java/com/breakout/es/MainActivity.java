@@ -6,7 +6,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.Toast;
+
+import com.breakout.es.render.MainRenderer;
 
 /**
  * Requests an OpenGL SurfaceView and assigns a renderer to it.
@@ -92,10 +93,10 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if(backButtonPressed > 0) {
+        if (backButtonPressed > 0) {
             super.onBackPressed();
-        }
-        else {
+            mainRenderer.stop();
+        } else {
             backButtonPressed++;
         }
     }

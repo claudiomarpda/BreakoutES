@@ -6,7 +6,8 @@ import android.media.MediaPlayer;
 
 import com.breakout.es.R;
 
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by mz on 21/05/17.
@@ -14,40 +15,45 @@ import java.io.IOException;
 
 public class SoundManager {
 
-    private final MediaPlayer wallSideCollision;
-    private final MediaPlayer boost;
-    private final MediaPlayer defenderCollision;
-    private final MediaPlayer wallTopCollision;
-
+    private final List<MediaPlayer> sounds = new ArrayList<>(4);
 
     public SoundManager(Context context) {
-        wallTopCollision = MediaPlayer.create(context, R.raw.beep1);
-        wallSideCollision = MediaPlayer.create(context, R.raw.beep2);
-        defenderCollision = MediaPlayer.create(context, R.raw.beep3);
-        boost = MediaPlayer.create(context, R.raw.boost);
+        // wall top collision
+        sounds.add(MediaPlayer.create(context, R.raw.beep1));
+        // wall side collision
+        sounds.add(MediaPlayer.create(context, R.raw.beep2));
+        // defender collision
+        sounds.add(MediaPlayer.create(context, R.raw.beep3));
+        // boost ball speed
+        sounds.add(MediaPlayer.create(context, R.raw.boost));
         init();
     }
 
     private void init() {
-        wallTopCollision.setAudioStreamType(AudioManager.STREAM_MUSIC);
-        wallSideCollision.setAudioStreamType(AudioManager.STREAM_MUSIC);
-        defenderCollision.setAudioStreamType(AudioManager.STREAM_MUSIC);
-        boost.setAudioStreamType(AudioManager.STREAM_MUSIC);
+        for (MediaPlayer sound : sounds) {
+            sound.setAudioStreamType(AudioManager.STREAM_MUSIC);
+        }
     }
 
     public void playWallTopCollision() {
-        wallTopCollision.start();
+        sounds.get(0).start();
     }
 
     public void playWallCollision() {
-        wallSideCollision.start();
+        sounds.get(1).start();
     }
 
     public void playDefenderCollision() {
-        defenderCollision.start();
+        sounds.get(2).start();
     }
 
-    public void playPowerUp() {
-        boost.start();
+    public void playBoost() {
+        sounds.get(3).start();
+    }
+
+    public void stop() {
+        for (MediaPlayer sound : sounds) {
+            sound.stop();
+        }
     }
 }

@@ -1,11 +1,11 @@
-package com.breakout.es;
+package com.breakout.es.render;
 
 import android.content.Context;
 import android.opengl.GLSurfaceView;
 import android.util.Log;
 
-import com.breakout.es.control.BallControl;
-import com.breakout.es.control.DefenderControl;
+import com.breakout.es.R;
+import com.breakout.es.control.GameControl;
 import com.breakout.es.model.Space;
 import com.breakout.es.util.LoggerConfig;
 import com.breakout.es.util.ShaderHelper;
@@ -62,8 +62,8 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     private int aPositionLocation;
     private int aColorLocation;
 
-    private BallControl ballControl;
-    private DefenderControl defenderControl;
+    private GameControl gameControl;
+
     private boolean hasStarted = false;
 
     public MainRenderer(Context context) {
@@ -113,8 +113,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         glEnableVertexAttribArray(aColorLocation);
         glLineWidth(5);
 
-        defenderControl = new DefenderControl();
-        ballControl = new BallControl(defenderControl.getDefenderPosition(), context);
+        gameControl = new GameControl(context);
     }
 
     /**
@@ -162,13 +161,15 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     }
 
     private void drawDefender() {
-        setVertexData(defenderControl.getCurrentDefenderVertices());
+//        setVertexData(defenderControl.getCurrentDefenderVertices());
+        setVertexData(gameControl.getCurrentDefenderVertices());
         bindVertexData();
         glDrawArrays(GL_LINES, 0, 2);
     }
 
     private void drawBall() {
-        setVertexData(ballControl.getCurrentBallVertices());
+//        setVertexData(ballControl.getCurrentBallVertices());
+        setVertexData(gameControl.getCurrentBallVertices());
         bindVertexData();
         glDrawArrays(GL_POINTS, 0, 1);
     }
@@ -179,7 +180,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         }
         // shoots the ball
         if (!hasStarted) {
-            new Thread(ballControl).start();
+            new Thread(gameControl).start();
             hasStarted = true;
         }
     }
@@ -188,16 +189,17 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         if (LoggerConfig.ON) {
             Log.d(TAG, "Action drag at point(" + normalizedX + ", " + normalizedY + ")");
         }
-        defenderControl.updateDefenderPosition(normalizedX);
-        ballControl.setDefenderPosition(defenderControl.getDefenderPosition());
+//        defenderControl.updateDefenderPosition(normalizedX);
+//        ballControl.updateDefenderPosition(defenderControl.getDefenderPosition());
+        gameControl.updateDefenderPosition(normalizedX);
     }
 
     /**
-     * Sets the object VERTICES as a buffer.
+     * Sets the vertices of an object as a buffer.
      *
      * @param objectVertices contains the data that will be allocated.
      */
-    public void setVertexData(float[] objectVertices) {
+    private void setVertexData(float[] objectVertices) {
         vertexData = ByteBuffer
                 .allocateDirect(objectVertices.length * BYTES_PER_FLOAT)
                 .order(ByteOrder.nativeOrder())
@@ -208,7 +210,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     /**
      * Tells OpenGL where to find the location of an attribute.
      */
-    public void bindVertexData() {
+    private void bindVertexData() {
 
         // Associates data with our attribute a_Position.
         vertexData.position(0);
@@ -229,5 +231,9 @@ public class MainRenderer implements GLSurfaceView.Renderer {
      */
     public void setHasStarted(boolean hasStarted) {
         this.hasStarted = hasStarted;
+    }
+
+    public void stop() {
+        gameControl.stop();
     }
 }
