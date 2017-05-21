@@ -5,25 +5,31 @@ import com.breakout.es.model.Defender;
 import com.breakout.es.model.Point;
 import com.breakout.es.model.Space;
 
+import java.security.SecureRandom;
+
 /**
  * Created by mz on 20/05/17.
  */
 
 public class BallControl implements Runnable {
 
-    private static float BALL_SPEED = 0.01f;
+    private static float BALL_SPEED = 0.005f;
     private static float BALL_DOWN = -2f;
 
     private Ball ball;
     private int ballDirectionY;
     private int ballDirectionX;
     private Point defenderPosition;
+    private boolean gameOver;
+    private boolean beginFromRightSide;
 
     public BallControl(Point defenderPosition) {
         ball = new Ball();
         ballDirectionY = 1;
         ballDirectionX = 1;
         this.defenderPosition = defenderPosition;
+        gameOver = false;
+        beginFromRightSide = new SecureRandom().nextBoolean();
     }
 
     @Override
@@ -42,20 +48,30 @@ public class BallControl implements Runnable {
                 updateBallDirectionY();
             }
             if (ball.getPosition().y < Space.LOW_BOUND) {
-                if (wasDefended()) {
-                    updateBallDirectionY();
+                if (!gameOver) {
+                    if (wasDefended()) {
+                        updateBallDirectionY();
+                    } else {
+                        gameOver = true;
+                    }
                 }
             }
-            // game is already over
-            // ends the thread loop after waiting the ball to leave the screen
+            // Game is already over. Ends the thread loop after waiting the ball to leave the screen.
+            // This condition allows the ball to be drawn util it leaves the screen.
             if (ball.getPosition().y < BALL_DOWN) {
                 break;
             }
 
-            // update ball position
+            // Can have two types of initial direction
+            if (!beginFromRightSide) {
+                updateBallDirectionY();
+                updateBallDirectionX();
+                beginFromRightSide = true;
+            }
             ball.setPosition(new Point(
-                    ball.getPosition().x * ballDirectionX,
+                    ball.getPosition().x + (BALL_SPEED * ballDirectionX),
                     ball.getPosition().y + (BALL_SPEED * ballDirectionY)));
+
         }
     }
 

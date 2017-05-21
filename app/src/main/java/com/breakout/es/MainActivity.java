@@ -6,6 +6,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.Toast;
 
 /**
  * Requests an OpenGL SurfaceView and assigns a renderer to it.
@@ -14,6 +15,9 @@ public class MainActivity extends AppCompatActivity {
 
     private GLSurfaceView glSurfaceView;
     private boolean rendererSet;
+    private MainRenderer mainRenderer;
+    private int backButtonPressed = 0;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
         // Request an OpenGL 2.0 compatible context
         glSurfaceView.setEGLContextClientVersion(2);
 
-        final MainRenderer mainRenderer = new MainRenderer(this);
+        mainRenderer = new MainRenderer(this);
 
         // Assign our renderer
         glSurfaceView.setRenderer(mainRenderer);
@@ -72,6 +76,9 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
         if (rendererSet) {
             glSurfaceView.onPause();
+
+            // allows to start over when resuming from pause
+            mainRenderer.setHasStarted(false);
         }
     }
 
@@ -80,6 +87,16 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         if (rendererSet) {
             glSurfaceView.onResume();
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if(backButtonPressed > 0) {
+            super.onBackPressed();
+        }
+        else {
+            backButtonPressed++;
         }
     }
 }

@@ -224,4 +224,10 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         glEnableVertexAttribArray(aColorLocation);
     }
 
+    /**
+     * Allows MainActivity to restart the game after pause.
+     */
+    public void setHasStarted(boolean hasStarted) {
+        this.hasStarted = hasStarted;
+    }
 }
