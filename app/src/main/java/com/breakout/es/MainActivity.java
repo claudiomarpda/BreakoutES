@@ -7,7 +7,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 
-import com.breakout.es.render.MainRenderer;
+import com.breakout.es.gl.MainRenderer;
 
 /**
  * Requests an OpenGL SurfaceView and assigns a renderer to it.

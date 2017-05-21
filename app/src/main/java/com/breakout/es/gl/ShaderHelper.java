@@ -1,6 +1,8 @@
-package com.breakout.es.util;
+package com.breakout.es.gl;
 
 import android.util.Log;
+
+import com.breakout.es.util.LoggerConfig;
 
 import static android.opengl.GLES20.GL_COMPILE_STATUS;
 import static android.opengl.GLES20.GL_FRAGMENT_SHADER;

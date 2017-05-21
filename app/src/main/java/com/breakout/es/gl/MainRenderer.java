@@ -1,4 +1,4 @@
-package com.breakout.es.render;
+package com.breakout.es.gl;
 
 import android.content.Context;
 import android.opengl.GLSurfaceView;
@@ -8,7 +8,6 @@ import com.breakout.es.R;
 import com.breakout.es.control.GameControl;
 import com.breakout.es.model.Space;
 import com.breakout.es.util.LoggerConfig;
-import com.breakout.es.util.ShaderHelper;
 import com.breakout.es.util.TextResourceReader;
 
 import java.nio.ByteBuffer;
